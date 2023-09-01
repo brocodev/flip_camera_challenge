@@ -17,6 +17,24 @@ class _TakePhotoScreenState extends State<TakePhotoScreen>
   bool switcher = false;
   double dragPercent = 0;
 
+  /// [ValueNotifier] to listen the flag to take a photo and index of the group
+  /// to be sent
+  final ValueNotifier<(bool, int)> takePhotoNotifier =
+      ValueNotifier((false, -1));
+
+  /// [ValueNotifier] to listen when the user is ready to take a photo
+  final ValueNotifier<bool> readyToReleaseNotifier = ValueNotifier(false);
+
+  void onFlickItem() {
+    if (rotateController.isAnimating) return;
+    switcher = !switcher;
+    if (switcher) {
+      rotateController.forward();
+    } else {
+      rotateController.reverse();
+    }
+  }
+
   @override
   void initState() {
     rotateController = AnimationController(
@@ -46,7 +64,9 @@ class _TakePhotoScreenState extends State<TakePhotoScreen>
             top: lerpDouble(-.5.sh, 70, dragPercent),
             bottom: null,
             child: CircularCamera(
-              dragPercent: dragPercent,
+              movePercent: dragPercent,
+              takePhotoNotifier: takePhotoNotifier,
+              readyToReleaseNotifier: readyToReleaseNotifier,
               rotateAnimation: CurvedAnimation(
                 curve: Curves.fastOutSlowIn,
                 parent: rotateController,
@@ -58,15 +78,11 @@ class _TakePhotoScreenState extends State<TakePhotoScreen>
             hideItemsPercent: dragPercent,
             itemBuilder: (index, isSelected) {
               return VerticalDraggableWidget(
-                onFlipUp: () {
-                  if (rotateController.isAnimating) return;
-                  switcher = !switcher;
-                  if (switcher) {
-                    rotateController.forward();
-                  } else {
-                    rotateController.reverse();
-                  }
-                },
+                onFlickUp: onFlickItem,
+                // TODO: Add code to handle for release ready event
+                onReleaseReady: (value) {},
+                // TODO: Add code to handle for released event event
+                onReleased: () async {},
                 onDragPercentChanged: (value) =>
                     setState(() => dragPercent = value),
                 enableDrag: isSelected,

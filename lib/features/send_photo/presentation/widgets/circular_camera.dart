@@ -8,13 +8,17 @@ import 'package:ui_common/ui_common.dart';
 
 class CircularCamera extends StatefulWidget {
   const CircularCamera({
-    required this.dragPercent,
+    required this.movePercent,
     required this.rotateAnimation,
+    required this.takePhotoNotifier,
+    required this.readyToReleaseNotifier,
     super.key,
   });
 
-  final double dragPercent;
+  final double movePercent;
   final Animation<double> rotateAnimation;
+  final ValueNotifier<(bool, int)> takePhotoNotifier;
+  final ValueNotifier<bool> readyToReleaseNotifier;
 
   @override
   State<CircularCamera> createState() => _CircularCameraState();
@@ -52,6 +56,9 @@ class _CircularCameraState extends State<CircularCamera>
                 const SnackBar(content: Text('Camera Access Denied')),
               );
             default:
+              context.showSnackBar(
+                const SnackBar(content: Text('Something went wrong')),
+              );
               break;
           }
         }
@@ -88,37 +95,48 @@ class _CircularCameraState extends State<CircularCamera>
 
   @override
   Widget build(BuildContext context) {
+    final size = lerpDouble(.2.sh, .4.sh, widget.movePercent);
     return Column(
       children: [
         AnimatedBuilder(
           animation: widget.rotateAnimation,
-          builder: (context, _) {
+          builder: (_, child) {
             final animation = widget.rotateAnimation;
-            final size = lerpDouble(.2.sh, .4.sh, widget.dragPercent);
             return Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()
                 ..setEntry(3, 2, 0.0001)
-                ..rotateX((pi * 2) * animation.value),
-              child: Center(
-                child: ClipRRect(
-                  borderRadius: size!.borderRadiusA,
-                  child: ColoredBox(
-                    color: Colors.black,
-                    child: SizedOverflowBox(
-                      size: Size(size, size),
-                      child: cameraController != null
-                          ? CameraPreview(cameraController!)
-                          : null,
-                    ),
-                  ),
+                ..rotateX((pi * 1) * animation.value),
+              child: child,
+            );
+          },
+          child: Center(
+            child: ClipRRect(
+              borderRadius: size!.borderRadiusA,
+              child: ColoredBox(
+                color: Colors.black,
+                child: SizedOverflowBox(
+                  size: Size(size, size),
+                  child: cameraController != null
+                      ? CameraPreview(cameraController!)
+                      : null,
                 ),
               ),
+            ),
+          ),
+        ),
+        height28,
+        ValueListenableBuilder<bool>(
+          valueListenable: widget.readyToReleaseNotifier,
+          builder: (__, value, _) {
+            return AnimatedSwitcher(
+              duration: kThemeAnimationDuration,
+              child: value
+                  ? Text('Release to take a photo', key: UniqueKey())
+                  : Text('Flick to flip the camera', key: UniqueKey()),
             );
           },
         ),
-        height28,
-        const Text('flip to change the camera'),
       ],
     );
   }

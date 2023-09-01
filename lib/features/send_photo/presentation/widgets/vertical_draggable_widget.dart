@@ -7,13 +7,31 @@ class VerticalDraggableWidget extends StatefulWidget {
     required this.child,
     required this.enableDrag,
     required this.onDragPercentChanged,
-    required this.onFlipUp,
+    required this.onFlickUp,
+    required this.onReleaseReady,
+    required this.onReleased,
     super.key,
   });
 
+  /// [bool] to enable or disable drag
   final bool enableDrag;
+
+  /// [ValueChanged] which is executed every time the widget position changes
+  /// and sends the drag percentage with values ranging from 0.0 to 1.0
   final ValueChanged<double> onDragPercentChanged;
-  final VoidCallback onFlipUp;
+
+  /// [VoidCallback] what is executed when the user swipe up
+  final VoidCallback onFlickUp;
+
+  /// [ValueChanged] indicating that the user maintained the final
+  /// drag position for at least 2 seconds
+  final ValueChanged<bool> onReleaseReady;
+
+  /// [Future] function that is executed after releasing the drag and having
+  /// maintained the final position for at least 2 seconds
+  final Future<void> Function() onReleased;
+
+  /// [Widget] that will be wrapped and to which the drag will be applied
   final Widget child;
 
   @override
@@ -84,13 +102,12 @@ class _VerticalDraggableWidgetState extends State<VerticalDraggableWidget>
         offsetYNotifier.value = (details.globalPosition.dy - startOffsetY)
             .clamp(0, maxVerticalDrag);
         widget.onDragPercentChanged(offsetYNotifier.value / maxVerticalDrag);
-        velocityTracker.addPosition(details.sourceTimeStamp!, position);
         if (details.primaryDelta! < 0) {
+          velocityTracker.addPosition(details.sourceTimeStamp!, position);
           final velocity =
               velocityTracker.getVelocityEstimate()?.pixelsPerSecond.dy;
-          print(velocity);
           if ((velocity ?? 0) < -1500) {
-            widget.onFlipUp();
+            widget.onFlickUp();
           }
         }
       },
