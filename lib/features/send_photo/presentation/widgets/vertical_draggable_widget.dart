@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:ui_common/ui_common.dart';
@@ -45,10 +47,12 @@ class _VerticalDraggableWidgetState extends State<VerticalDraggableWidget>
   late final Animation<double> animation;
   final double maxVerticalDrag = .3.sh;
   final GlobalKey globalKey = GlobalKey();
-  double startOffsetY = 0;
-  ValueNotifier<double> offsetYNotifier = ValueNotifier(0);
   final VelocityTracker velocityTracker =
       VelocityTracker.withKind(PointerDeviceKind.touch);
+  ValueNotifier<double> offsetYNotifier = ValueNotifier(0);
+  double startOffsetY = 0;
+  Timer? readyToReleaseTimer;
+  bool isReadyToRelease = false;
 
   Offset get position {
     final renderBox =
@@ -58,6 +62,7 @@ class _VerticalDraggableWidgetState extends State<VerticalDraggableWidget>
 
   void restoreControllerListener() {
     if (controller.isCompleted) {
+      restoreReleaseTimer();
       controller.reset();
       offsetYNotifier.value = 0;
     }
@@ -66,6 +71,49 @@ class _VerticalDraggableWidgetState extends State<VerticalDraggableWidget>
           (offsetYNotifier.value / maxVerticalDrag) * animation.value;
       widget.onDragPercentChanged(restorePercent);
     }
+  }
+
+  void onVerticalDragUpdate(DragUpdateDetails details) {
+    if (controller.isAnimating) return;
+    offsetYNotifier.value =
+        (details.globalPosition.dy - startOffsetY).clamp(0, maxVerticalDrag);
+    final percent = offsetYNotifier.value / maxVerticalDrag;
+    widget.onDragPercentChanged(percent);
+    if (percent < .2 && readyToReleaseTimer != null) restoreReleaseTimer();
+    if (percent == 1) initReleaseTime();
+    if (details.primaryDelta! < 0) checkVelocity(details);
+  }
+
+  void initReleaseTime() {
+    if (readyToReleaseTimer != null) return;
+    readyToReleaseTimer =
+        Timer(const Duration(seconds: 2), () => widget.onReleaseReady(true));
+  }
+
+  void restoreReleaseTimer() {
+    widget.onReleaseReady(false);
+    readyToReleaseTimer?.cancel();
+    readyToReleaseTimer = null;
+  }
+
+  void checkVelocity(DragUpdateDetails details) {
+    velocityTracker.addPosition(
+      details.sourceTimeStamp!,
+      details.globalPosition,
+    );
+    final velocity = velocityTracker.getVelocityEstimate()?.pixelsPerSecond.dy;
+    if ((velocity ?? 0) < -1500) {
+      widget.onFlickUp();
+    }
+  }
+
+  Future<void> onDragReleased(DragEndDetails details) async {
+    if (controller.isAnimating) return;
+    // if timer is not active, execute the release function
+    if (!(readyToReleaseTimer?.isActive ?? true)) {
+      await widget.onReleased();
+    }
+    await controller.forward();
   }
 
   @override
@@ -97,24 +145,8 @@ class _VerticalDraggableWidgetState extends State<VerticalDraggableWidget>
         if (controller.isAnimating) return;
         startOffsetY = details.globalPosition.dy;
       },
-      onVerticalDragUpdate: (details) {
-        if (controller.isAnimating) return;
-        offsetYNotifier.value = (details.globalPosition.dy - startOffsetY)
-            .clamp(0, maxVerticalDrag);
-        widget.onDragPercentChanged(offsetYNotifier.value / maxVerticalDrag);
-        if (details.primaryDelta! < 0) {
-          velocityTracker.addPosition(details.sourceTimeStamp!, position);
-          final velocity =
-              velocityTracker.getVelocityEstimate()?.pixelsPerSecond.dy;
-          if ((velocity ?? 0) < -1500) {
-            widget.onFlickUp();
-          }
-        }
-      },
-      onVerticalDragEnd: (details) {
-        if (controller.isAnimating) return;
-        controller.forward();
-      },
+      onVerticalDragUpdate: onVerticalDragUpdate,
+      onVerticalDragEnd: onDragReleased,
       child: AnimatedBuilder(
         animation: controller,
         builder: (_, child) => ValueListenableBuilder<double>(

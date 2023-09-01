@@ -42,8 +42,11 @@ class _CircularCameraState extends State<CircularCamera>
 
   void initCamera() {
     if (deviceCameras.isEmpty) return;
-    cameraController =
-        CameraController(deviceCameras[selectedCamera], ResolutionPreset.max);
+    cameraController = CameraController(
+      deviceCameras[selectedCamera],
+      ResolutionPreset.max,
+      enableAudio: false,
+    );
     cameraController?.initialize().then((_) {
       if (!mounted) return;
       setState(() {});
@@ -106,7 +109,7 @@ class _CircularCameraState extends State<CircularCamera>
               alignment: Alignment.center,
               transform: Matrix4.identity()
                 ..setEntry(3, 2, 0.0001)
-                ..rotateX((pi * 1) * animation.value),
+                ..rotateX((pi * 2) * animation.value),
               child: child,
             );
           },
@@ -132,8 +135,12 @@ class _CircularCameraState extends State<CircularCamera>
             return AnimatedSwitcher(
               duration: kThemeAnimationDuration,
               child: value
-                  ? Text('Release to take a photo', key: UniqueKey())
-                  : Text('Flick to flip the camera', key: UniqueKey()),
+                  ? const Text(
+                      'Release to take a photo',
+                      key: Key('key1'),
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    )
+                  : const Text('Flick to flip the camera'),
             );
           },
         ),

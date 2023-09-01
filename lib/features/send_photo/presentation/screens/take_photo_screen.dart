@@ -79,10 +79,12 @@ class _TakePhotoScreenState extends State<TakePhotoScreen>
             itemBuilder: (index, isSelected) {
               return VerticalDraggableWidget(
                 onFlickUp: onFlickItem,
-                // TODO: Add code to handle for release ready event
-                onReleaseReady: (value) {},
-                // TODO: Add code to handle for released event event
-                onReleased: () async {},
+                onReleaseReady: (value) {
+                  readyToReleaseNotifier.value = value;
+                },
+                onReleased: () async {
+                  await Future<void>.delayed(const Duration(seconds: 1));
+                },
                 onDragPercentChanged: (value) =>
                     setState(() => dragPercent = value),
                 enableDrag: isSelected,
