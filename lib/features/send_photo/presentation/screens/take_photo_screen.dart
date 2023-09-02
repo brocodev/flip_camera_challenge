@@ -57,6 +57,7 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
     cameraController = CameraController(
       deviceCameras[context.cameraIndexNotifier.value],
       ResolutionPreset.max,
+      enableAudio: false,
     );
     cameraController?.initialize().then((_) {
       if (!mounted) return;
@@ -91,6 +92,23 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
     }
   }
 
+  Future<void> onDragReleased() async {
+    final xFile = await cameraController?.takePicture();
+    if (!mounted && xFile != null) return;
+    context.photoFileNotifier.value = File(xFile!.path);
+    await Future<void>.delayed(const Duration(seconds: 1));
+    // restore photo file notifier
+    Future.delayed(
+      kThemeChangeDuration,
+      () => context.photoFileNotifier.value = null,
+    );
+    // fake delivered action
+    Future.delayed(
+      const Duration(seconds: 2),
+      () => deliveredController.forward(),
+    );
+  }
+
   @override
   void initState() {
     WidgetsBinding.instance
@@ -110,6 +128,9 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
   @override
   void dispose() {
     rotateController.dispose();
+    deliveredController
+      ..removeListener(deliveredAnimationListener)
+      ..dispose();
     cameraController?.dispose();
     super.dispose();
   }
@@ -160,20 +181,7 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
           itemCount: 10,
           itemBuilder: (index, isSelected) {
             return VerticalDraggableWidget(
-              onReleased: () async {
-                final xFile = await cameraController?.takePicture();
-                if (!mounted && xFile != null) return;
-                context.photoFileNotifier.value = File(xFile!.path);
-                await Future<void>.delayed(const Duration(seconds: 1));
-                Future.delayed(
-                  kThemeChangeDuration,
-                  () => context.photoFileNotifier.value = null,
-                );
-                Future.delayed(
-                  const Duration(seconds: 1),
-                  () => deliveredController.forward(),
-                );
-              },
+              onReleased: onDragReleased,
               onFlickUp: onFlickItem,
               onReleaseReady: (value) =>
                   context.readyToReleaseNotifier.value = value,

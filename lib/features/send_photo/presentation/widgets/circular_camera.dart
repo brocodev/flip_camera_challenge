@@ -94,13 +94,13 @@ class _CircularCameraState extends State<CircularCamera> {
         ValueListenableBuilder<bool>(
           valueListenable: context.readyToReleaseNotifier,
           builder: (__, value, child) => AnimatedSwitcher(
-            duration: kThemeAnimationDuration,
+            duration: const Duration(milliseconds: 600),
             child: value ? child : const Text('Flick to flip the camera'),
           ),
           child: ValueListenableBuilder(
             valueListenable: context.photoFileNotifier,
             builder: (_, file, __) => file == null
-                ? const Text('Release to take a photo', key: Key('key1'))
+                ? const Text('Release to take the photo', key: Key('key1'))
                 : const Text('Cool!'),
           ),
         ),

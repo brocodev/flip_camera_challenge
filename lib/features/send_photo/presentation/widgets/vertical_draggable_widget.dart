@@ -12,6 +12,7 @@ class VerticalDraggableWidget extends StatefulWidget {
     required this.onFlickUp,
     required this.onReleaseReady,
     required this.onReleased,
+    this.readyToReleaseDuration = const Duration(seconds: 2),
     super.key,
   });
 
@@ -26,11 +27,14 @@ class VerticalDraggableWidget extends StatefulWidget {
   final VoidCallback onFlickUp;
 
   /// [ValueChanged] indicating that the user maintained the final
-  /// drag position for at least 2 seconds
+  /// drag position for at least the value of the [readyToReleaseDuration]
   final ValueChanged<bool> onReleaseReady;
+  final Duration readyToReleaseDuration;
 
   /// [Future] function that is executed after releasing the drag and having
-  /// maintained the final position for at least 2 seconds
+  /// maintained the final position for at least the value of the
+  /// [readyToReleaseDuration],after it is completed, the animation is executed
+  /// to return the dragged child to its place
   final Future<void> Function() onReleased;
 
   /// [Widget] that will be wrapped and to which the drag will be applied
@@ -79,7 +83,7 @@ class _VerticalDraggableWidgetState extends State<VerticalDraggableWidget>
         (details.globalPosition.dy - startOffsetY).clamp(0, maxVerticalDrag);
     final percent = offsetYNotifier.value / maxVerticalDrag;
     widget.onDragPercentChanged(percent);
-    if (percent < 1 && readyToReleaseTimer != null) restoreReleaseTimer();
+    if (percent < .8 && readyToReleaseTimer != null) restoreReleaseTimer();
     if (percent == 1) initReleaseTime();
     if (details.primaryDelta! < 0) checkVelocity(details);
   }
@@ -87,7 +91,7 @@ class _VerticalDraggableWidgetState extends State<VerticalDraggableWidget>
   void initReleaseTime() {
     if (readyToReleaseTimer != null) return;
     readyToReleaseTimer =
-        Timer(const Duration(seconds: 2), () => widget.onReleaseReady(true));
+        Timer(widget.readyToReleaseDuration, () => widget.onReleaseReady(true));
   }
 
   void restoreReleaseTimer() {
