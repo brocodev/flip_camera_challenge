@@ -1,17 +1,16 @@
 import 'dart:ui';
 
+import 'package:flip_camera_challenge/features/send_photo/presentation/notifiers/inherited_notifiers.dart';
 import 'package:flutter/material.dart';
 import 'package:ui_common/ui_common.dart';
 
 class SelectGroupPageView extends StatefulWidget {
   const SelectGroupPageView({
-    required this.hideItemsPercent,
     required this.itemCount,
     required this.itemBuilder,
     super.key,
   });
 
-  final double hideItemsPercent;
   final int itemCount;
   final Widget Function(int index, bool isSelected) itemBuilder;
 
@@ -54,15 +53,19 @@ class _SelectGroupPageViewState extends State<SelectGroupPageView>
       itemBuilder: (context, index) {
         final percent = (index - page).abs().clamp(0.0, 1.0);
         final isSelected = index == page.toInt();
-        final dragPercent = widget.hideItemsPercent;
-        return Transform.translate(
-          offset: Offset(
-            isSelected
-                ? 0
-                : index < page.toInt()
-                    ? lerpDouble(0, -.75.sw, dragPercent)!
-                    : lerpDouble(0, .75.sw, dragPercent)!,
-            0,
+
+        return ValueListenableBuilder<double>(
+          valueListenable: InheritedNotifiers.getDragPercent(context),
+          builder: (context, value, child) => Transform.translate(
+            offset: Offset(
+              isSelected
+                  ? 0
+                  : index < page.toInt()
+                      ? lerpDouble(0, -.75.sw, value)!
+                      : lerpDouble(0, .75.sw, value)!,
+              0,
+            ),
+            child: child,
           ),
           child: Transform.scale(
             scale: lerpDouble(1.3, 1, percent),

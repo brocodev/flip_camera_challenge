@@ -1,19 +1,21 @@
+import 'package:flip_camera_challenge/features/send_photo/presentation/notifiers/inherited_notifiers.dart';
 import 'package:flutter/material.dart';
 import 'package:ui_common/ui_common.dart';
 
 class PullToRevealCameraArrow extends StatelessWidget {
   const PullToRevealCameraArrow({
-    required this.hide,
     super.key,
   });
 
-  final bool hide;
-
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      duration: kThemeAnimationDuration,
-      opacity: hide ? 0 : 1,
+    return ValueListenableBuilder<double>(
+      valueListenable: InheritedNotifiers.getDragPercent(context),
+      builder: (_, value, child) => AnimatedOpacity(
+        duration: kThemeAnimationDuration,
+        opacity: value > .1 ? 0 : 1,
+        child: child,
+      ),
       child: Column(
         children: [
           const Text('Pull down to reveal the camera'),

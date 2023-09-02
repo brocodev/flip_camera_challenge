@@ -1,72 +1,128 @@
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:camera/camera.dart';
+import 'package:flip_camera_challenge/core/global/variables.dart';
+import 'package:flip_camera_challenge/features/send_photo/presentation/notifiers/inherited_notifiers.dart';
 import 'package:flip_camera_challenge/features/send_photo/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:ui_common/ui_common.dart';
 
-class TakePhotoScreen extends StatefulWidget {
+class TakePhotoScreen extends StatelessWidget {
   const TakePhotoScreen({super.key});
-
   @override
-  State<TakePhotoScreen> createState() => _TakePhotoScreenState();
+  Widget build(BuildContext context) {
+    return InheritedNotifiers(
+      dragPercent: ValueNotifier(0),
+      cameraReady: ValueNotifier(false),
+      readyToRelease: ValueNotifier(false),
+      photoFile: ValueNotifier(null),
+      child: const Scaffold(body: _TakePhotoBodyWidget()),
+    );
+  }
 }
 
-class _TakePhotoScreenState extends State<TakePhotoScreen>
-    with SingleTickerProviderStateMixin {
+class _TakePhotoBodyWidget extends StatefulWidget {
+  const _TakePhotoBodyWidget({super.key});
+
+  @override
+  State<_TakePhotoBodyWidget> createState() => _TakePhotoBodyWidgetState();
+}
+
+class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController rotateController;
   bool switcher = false;
-  double dragPercent = 0;
+  CameraController? cameraController;
 
-  /// [ValueNotifier] to listen the flag to take a photo and index of the group
-  /// to be sent
-  final ValueNotifier<(bool, int)> takePhotoNotifier =
-      ValueNotifier((false, -1));
-
-  /// [ValueNotifier] to listen when the user is ready to take a photo
-  final ValueNotifier<bool> readyToReleaseNotifier = ValueNotifier(false);
-
-  void onFlickItem() {
+  Future<void> onFlickItem() async {
     if (rotateController.isAnimating) return;
     switcher = !switcher;
     if (switcher) {
-      rotateController.forward();
+      await rotateController.forward();
+      initCamera(1);
     } else {
-      rotateController.reverse();
+      await rotateController.reverse();
+      initCamera(0);
+    }
+  }
+
+  void initCamera(int index) {
+    if (deviceCameras.isEmpty) return;
+    cameraController = CameraController(
+      deviceCameras[index],
+      ResolutionPreset.max,
+      enableAudio: false,
+    );
+    try {
+      cameraController?.initialize();
+      if (!mounted) return;
+      setState(() {});
+    } on CameraException catch (e) {
+      handleCameraException(e);
+    }
+  }
+
+  void handleCameraException(CameraException e) {
+    switch (e.code) {
+      case 'CameraAccessDenied':
+        context.showSnackBar(
+          const SnackBar(content: Text('Camera Access Denied')),
+        );
+      default:
+        context.showSnackBar(
+          const SnackBar(content: Text('Something went wrong')),
+        );
+        break;
     }
   }
 
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     rotateController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
+    initCamera(0);
     super.initState();
   }
 
   @override
   void dispose() {
     rotateController.dispose();
+    cameraController?.dispose();
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (cameraController == null || !cameraController!.value.isInitialized) {
+      return;
+    }
+    if (state == AppLifecycleState.inactive) {
+      cameraController?.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      initCamera(0);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
+    return ValueListenableBuilder<double>(
+      valueListenable: InheritedNotifiers.getDragPercent(context),
+      builder: (context, dragPercent, child) => Stack(
         children: [
           Positioned.fill(
             top: 50 + context.mediaQuery.padding.top,
             bottom: 0.6.sh,
-            child: PullToRevealCameraArrow(hide: dragPercent > .1),
+            child: const PullToRevealCameraArrow(),
           ),
           Positioned.fill(
-            top: lerpDouble(-.5.sh, 70, dragPercent),
+            top: lerpDouble(-.5.sh, 70.h, dragPercent),
             bottom: null,
             child: CircularCamera(
-              movePercent: dragPercent,
-              takePhotoNotifier: takePhotoNotifier,
-              readyToReleaseNotifier: readyToReleaseNotifier,
+              cameraController: cameraController,
               rotateAnimation: CurvedAnimation(
                 curve: Curves.fastOutSlowIn,
                 parent: rotateController,
@@ -75,18 +131,17 @@ class _TakePhotoScreenState extends State<TakePhotoScreen>
           ),
           SelectGroupPageView(
             itemCount: 10,
-            hideItemsPercent: dragPercent,
             itemBuilder: (index, isSelected) {
               return VerticalDraggableWidget(
-                onFlickUp: onFlickItem,
-                onReleaseReady: (value) {
-                  readyToReleaseNotifier.value = value;
-                },
                 onReleased: () async {
-                  await Future<void>.delayed(const Duration(seconds: 1));
+                  final xFile = await cameraController?.takePicture();
+                  File(xFile!.path);
                 },
+                onFlickUp: onFlickItem,
+                onReleaseReady: (value) =>
+                    InheritedNotifiers.getReadyToRelease(context).value = value,
                 onDragPercentChanged: (value) =>
-                    setState(() => dragPercent = value),
+                    InheritedNotifiers.getDragPercent(context).value = value,
                 enableDrag: isSelected,
                 child: GroupAvatar(index: index),
               );

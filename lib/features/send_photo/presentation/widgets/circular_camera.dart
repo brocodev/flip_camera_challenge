@@ -1,24 +1,21 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
 
 import 'package:camera/camera.dart';
-import 'package:flip_camera_challenge/core/core.dart';
+import 'package:flip_camera_challenge/features/send_photo/presentation/notifiers/inherited_notifiers.dart';
 import 'package:flutter/material.dart';
 import 'package:ui_common/ui_common.dart';
 
 class CircularCamera extends StatefulWidget {
   const CircularCamera({
-    required this.movePercent,
     required this.rotateAnimation,
-    required this.takePhotoNotifier,
-    required this.readyToReleaseNotifier,
+    this.cameraController,
     super.key,
   });
 
-  final double movePercent;
   final Animation<double> rotateAnimation;
-  final ValueNotifier<(bool, int)> takePhotoNotifier;
-  final ValueNotifier<bool> readyToReleaseNotifier;
+  final CameraController? cameraController;
 
   @override
   State<CircularCamera> createState() => _CircularCameraState();
@@ -26,79 +23,60 @@ class CircularCamera extends StatefulWidget {
 
 class _CircularCameraState extends State<CircularCamera>
     with WidgetsBindingObserver {
-  CameraController? cameraController;
   int selectedCamera = 0;
+  XFile? xFile;
 
-  void rotationListener() {
-    if (widget.rotateAnimation.status == AnimationStatus.completed) {
-      selectedCamera = 1;
-      initCamera();
-    }
-    if (widget.rotateAnimation.status == AnimationStatus.dismissed) {
-      selectedCamera = 0;
-      initCamera();
-    }
-  }
+  // void rotationListener() {
+  //   if (widget.rotateAnimation.status == AnimationStatus.completed) {
+  //     selectedCamera = 1;
+  //     initCamera();
+  //   }
+  //   if (widget.rotateAnimation.status == AnimationStatus.dismissed) {
+  //     selectedCamera = 0;
+  //     initCamera();
+  //   }
+  // }
 
-  void initCamera() {
-    if (deviceCameras.isEmpty) return;
-    cameraController = CameraController(
-      deviceCameras[selectedCamera],
-      ResolutionPreset.max,
-      enableAudio: false,
-    );
-    cameraController?.initialize().then((_) {
-      if (!mounted) return;
-      setState(() {});
-    }).catchError(
-      (Object e) {
-        if (e is CameraException) {
-          switch (e.code) {
-            case 'CameraAccessDenied':
-              context.showSnackBar(
-                const SnackBar(content: Text('Camera Access Denied')),
-              );
-            default:
-              context.showSnackBar(
-                const SnackBar(content: Text('Something went wrong')),
-              );
-              break;
-          }
-        }
-      },
-    );
-  }
-
-  @override
-  void initState() {
-    WidgetsBinding.instance.addObserver(this);
-    widget.rotateAnimation.addListener(rotationListener);
-    initCamera();
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    widget.rotateAnimation.removeListener(rotationListener);
-    cameraController?.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (cameraController == null || !cameraController!.value.isInitialized) {
-      return;
-    }
-    if (state == AppLifecycleState.inactive) {
-      cameraController?.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      initCamera();
-    }
-  }
+  // Future<void> takePhotoListener() async {
+  //   if (widget.takePhotoNotifier.value.$1) {
+  //     xFile = await cameraController?.takePicture();
+  //     setState(() {});
+  //   }
+  // }
+  //
+  // @override
+  // void initState() {
+  //   WidgetsBinding.instance.addObserver(this);
+  //   widget.rotateAnimation.addListener(rotationListener);
+  //   widget.readyToReleaseNotifier.addListener(() {
+  //     xFile = null;
+  //     setState(() {});
+  //   });
+  //   initCamera();
+  //   super.initState();
+  // }
+  //
+  // @override
+  // void dispose() {
+  //   widget.rotateAnimation.removeListener(rotationListener);
+  //   cameraController?.dispose();
+  //   super.dispose();
+  // }
+  //
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   if (cameraController == null || !cameraController!.value.isInitialized) {
+  //     return;
+  //   }
+  //   if (state == AppLifecycleState.inactive) {
+  //     cameraController?.dispose();
+  //   } else if (state == AppLifecycleState.resumed) {
+  //     initCamera();
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
-    final size = lerpDouble(.2.sh, .4.sh, widget.movePercent);
     return Column(
       children: [
         AnimatedBuilder(
@@ -113,33 +91,54 @@ class _CircularCameraState extends State<CircularCamera>
               child: child,
             );
           },
-          child: Center(
-            child: ClipRRect(
-              borderRadius: size!.borderRadiusA,
-              child: ColoredBox(
-                color: Colors.black,
-                child: SizedOverflowBox(
-                  size: Size(size, size),
-                  child: cameraController != null
-                      ? CameraPreview(cameraController!)
-                      : null,
-                ),
+          child: ValueListenableBuilder<bool>(
+            valueListenable: InheritedNotifiers.getReadyToRelease(context),
+            builder: (_, value, child) => DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: value ? Colors.white : Colors.transparent,
+              ),
+              child: child,
+            ),
+            child: Padding(
+              padding: 4.edgeInsetsA,
+              child: ValueListenableBuilder<double>(
+                valueListenable: InheritedNotifiers.getDragPercent(context),
+                builder: (_, value, child) {
+                  final size = lerpDouble(.2.sh, .4.sh, value)!;
+                  return ClipRRect(
+                    borderRadius: size.borderRadiusA,
+                    child: ColoredBox(
+                      color: Colors.white,
+                      child: SizedOverflowBox(
+                        size: Size(size, size),
+                        child: child,
+                      ),
+                    ),
+                  );
+                },
+                child: xFile != null
+                    ? Image.file(File(xFile!.path))
+                    : widget.cameraController != null
+                        ? CameraPreview(widget.cameraController!)
+                        : null,
               ),
             ),
           ),
         ),
         height28,
         ValueListenableBuilder<bool>(
-          valueListenable: widget.readyToReleaseNotifier,
+          valueListenable: InheritedNotifiers.getReadyToRelease(context),
           builder: (__, value, _) {
             return AnimatedSwitcher(
               duration: kThemeAnimationDuration,
               child: value
-                  ? const Text(
-                      'Release to take a photo',
-                      key: Key('key1'),
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    )
+                  ? xFile == null
+                      ? const Text(
+                          'Release to take a photo',
+                          key: Key('key1'),
+                        )
+                      : const Text('Cool!')
                   : const Text('Flick to flip the camera'),
             );
           },
