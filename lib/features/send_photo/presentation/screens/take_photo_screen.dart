@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
@@ -17,6 +18,7 @@ class TakePhotoScreen extends StatelessWidget {
       dragPercent: ValueNotifier(0),
       readyToRelease: ValueNotifier(false),
       photoFile: ValueNotifier(null),
+      cameraIndex: ValueNotifier(0),
       child: const Scaffold(body: _TakePhotoBodyWidget()),
     );
   }
@@ -30,30 +32,32 @@ class _TakePhotoBodyWidget extends StatefulWidget {
 }
 
 class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController rotateController;
+  late final AnimationController deliveredController;
   bool switcher = false;
-  int selectedCamera = 0;
   CameraController? cameraController;
 
   Future<void> onFlickItem() async {
     if (rotateController.isAnimating) return;
     switcher = !switcher;
     if (switcher) {
+      context.cameraIndexNotifier.value = 1;
       await rotateController.forward();
-      selectedCamera = 1;
       initCamera();
     } else {
+      context.cameraIndexNotifier.value = 0;
       await rotateController.reverse();
-      selectedCamera = 0;
       initCamera();
     }
   }
 
   void initCamera() {
     if (deviceCameras.isEmpty) return;
-    cameraController =
-        CameraController(deviceCameras[selectedCamera], ResolutionPreset.max);
+    cameraController = CameraController(
+      deviceCameras[context.cameraIndexNotifier.value],
+      ResolutionPreset.max,
+    );
     cameraController?.initialize().then((_) {
       if (!mounted) return;
       setState(() {});
@@ -78,14 +82,28 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
     }
   }
 
+  void deliveredAnimationListener() {
+    if (deliveredController.status == AnimationStatus.completed) {
+      Future.delayed(
+        const Duration(milliseconds: 600),
+        () => deliveredController.reverse(),
+      );
+    }
+  }
+
   @override
   void initState() {
-    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance
+      ..addObserver(this)
+      ..addPostFrameCallback((_) => initCamera());
     rotateController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800),
     );
-    initCamera();
+    deliveredController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..addListener(deliveredAnimationListener);
     super.initState();
   }
 
@@ -132,6 +150,12 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
             ),
           ),
         ),
+        DeliveredAnimatedChip(
+          animation: CurvedAnimation(
+            parent: deliveredController,
+            curve: Curves.easeOutBack,
+          ),
+        ),
         SelectGroupPageView(
           itemCount: 10,
           itemBuilder: (index, isSelected) {
@@ -140,7 +164,15 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
                 final xFile = await cameraController?.takePicture();
                 if (!mounted && xFile != null) return;
                 context.photoFileNotifier.value = File(xFile!.path);
-                // await Future<void>.delayed(const Duration(seconds: 1));
+                await Future<void>.delayed(const Duration(seconds: 1));
+                Future.delayed(
+                  kThemeChangeDuration,
+                  () => context.photoFileNotifier.value = null,
+                );
+                Future.delayed(
+                  const Duration(seconds: 1),
+                  () => deliveredController.forward(),
+                );
               },
               onFlickUp: onFlickItem,
               onReleaseReady: (value) =>

@@ -9,8 +9,7 @@ class FlipCameraApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-      builder: (__, child) => child!,
-      child: MaterialApp(
+      builder: (__, child) => MaterialApp(
         title: 'Material App',
         theme: ThemeData(
           scaffoldBackgroundColor: Colors.amber,
@@ -21,6 +20,9 @@ class FlipCameraApp extends StatelessWidget {
               statusBarBrightness: Brightness.dark,
               statusBarIconBrightness: Brightness.dark,
             ),
+          ),
+          textTheme: TextTheme(
+            bodyMedium: TextStyle(fontWeight: FontWeight.w500, fontSize: 16.sp),
           ),
         ),
         home: const TakePhotoScreen(),

@@ -66,8 +66,22 @@ class _CircularCameraState extends State<CircularCamera> {
                 },
                 child: ValueListenableBuilder<File?>(
                   valueListenable: context.photoFileNotifier,
-                  builder: (_, file, child) =>
-                      file != null ? Image.file(file) : child!,
+                  builder: (_, file, child) => file != null
+                      ? ValueListenableBuilder<int>(
+                          valueListenable: context.cameraIndexNotifier,
+                          builder: (_, value, child) {
+                            if (value == 0) return child!;
+                            return Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.0001)
+                                ..rotateY(pi),
+                              child: child,
+                            );
+                          },
+                          child: Image.file(file),
+                        )
+                      : child!,
                   child: widget.controller != null
                       ? CameraPreview(widget.controller!)
                       : const SizedBox.shrink(),

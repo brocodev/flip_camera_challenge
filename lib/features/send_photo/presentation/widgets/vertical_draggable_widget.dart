@@ -26,11 +26,11 @@ class VerticalDraggableWidget extends StatefulWidget {
   final VoidCallback onFlickUp;
 
   /// [ValueChanged] indicating that the user maintained the final
-  /// drag position for at least 1 second
+  /// drag position for at least 2 seconds
   final ValueChanged<bool> onReleaseReady;
 
   /// [Future] function that is executed after releasing the drag and having
-  /// maintained the final position for at least 1 second
+  /// maintained the final position for at least 2 seconds
   final Future<void> Function() onReleased;
 
   /// [Widget] that will be wrapped and to which the drag will be applied
@@ -87,7 +87,7 @@ class _VerticalDraggableWidgetState extends State<VerticalDraggableWidget>
   void initReleaseTime() {
     if (readyToReleaseTimer != null) return;
     readyToReleaseTimer =
-        Timer(const Duration(seconds: 1), () => widget.onReleaseReady(true));
+        Timer(const Duration(seconds: 2), () => widget.onReleaseReady(true));
   }
 
   void restoreReleaseTimer() {
