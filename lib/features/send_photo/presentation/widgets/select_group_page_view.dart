@@ -55,7 +55,7 @@ class _SelectGroupPageViewState extends State<SelectGroupPageView>
         final isSelected = index == page.toInt();
 
         return ValueListenableBuilder<double>(
-          valueListenable: InheritedNotifiers.getDragPercent(context),
+          valueListenable: context.dragPercentNotifier,
           builder: (context, value, child) => Transform.translate(
             offset: Offset(
               isSelected

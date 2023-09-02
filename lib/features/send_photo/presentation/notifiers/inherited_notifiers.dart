@@ -5,7 +5,6 @@ import 'package:flutter/cupertino.dart';
 class InheritedNotifiers extends InheritedWidget {
   const InheritedNotifiers({
     required this.readyToRelease,
-    required this.cameraReady,
     required this.photoFile,
     required this.dragPercent,
     required super.child,
@@ -14,16 +13,11 @@ class InheritedNotifiers extends InheritedWidget {
 
   final ValueNotifier<double> dragPercent;
   final ValueNotifier<bool> readyToRelease;
-  final ValueNotifier<bool> cameraReady;
   final ValueNotifier<File?> photoFile;
 
   static ValueNotifier<double> getDragPercent(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<InheritedNotifiers>()!
       .dragPercent;
-
-  static ValueNotifier<bool> getCameraReady(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<InheritedNotifiers>()!
-      .cameraReady;
 
   static ValueNotifier<bool> getReadyToRelease(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<InheritedNotifiers>()!
@@ -36,4 +30,15 @@ class InheritedNotifiers extends InheritedWidget {
   @override
   bool updateShouldNotify(InheritedNotifiers oldWidget) =>
       dragPercent != oldWidget.dragPercent;
+}
+
+extension ContextInheritedNotifiersExt on BuildContext {
+  ValueNotifier<double> get dragPercentNotifier =>
+      InheritedNotifiers.getDragPercent(this);
+
+  ValueNotifier<bool> get readyToReleaseNotifier =>
+      InheritedNotifiers.getReadyToRelease(this);
+
+  ValueNotifier<File?> get photoFileNotifier =>
+      InheritedNotifiers.getPhotoFile(this);
 }

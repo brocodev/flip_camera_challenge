@@ -10,7 +10,7 @@ class PullToRevealCameraArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<double>(
-      valueListenable: InheritedNotifiers.getDragPercent(context),
+      valueListenable: context.dragPercentNotifier,
       builder: (_, value, child) => AnimatedOpacity(
         duration: kThemeAnimationDuration,
         opacity: value > .1 ? 0 : 1,

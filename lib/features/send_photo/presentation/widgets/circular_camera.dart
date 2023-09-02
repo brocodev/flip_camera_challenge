@@ -10,71 +10,18 @@ import 'package:ui_common/ui_common.dart';
 class CircularCamera extends StatefulWidget {
   const CircularCamera({
     required this.rotateAnimation,
-    this.cameraController,
+    this.controller,
     super.key,
   });
 
   final Animation<double> rotateAnimation;
-  final CameraController? cameraController;
+  final CameraController? controller;
 
   @override
   State<CircularCamera> createState() => _CircularCameraState();
 }
 
-class _CircularCameraState extends State<CircularCamera>
-    with WidgetsBindingObserver {
-  int selectedCamera = 0;
-  XFile? xFile;
-
-  // void rotationListener() {
-  //   if (widget.rotateAnimation.status == AnimationStatus.completed) {
-  //     selectedCamera = 1;
-  //     initCamera();
-  //   }
-  //   if (widget.rotateAnimation.status == AnimationStatus.dismissed) {
-  //     selectedCamera = 0;
-  //     initCamera();
-  //   }
-  // }
-
-  // Future<void> takePhotoListener() async {
-  //   if (widget.takePhotoNotifier.value.$1) {
-  //     xFile = await cameraController?.takePicture();
-  //     setState(() {});
-  //   }
-  // }
-  //
-  // @override
-  // void initState() {
-  //   WidgetsBinding.instance.addObserver(this);
-  //   widget.rotateAnimation.addListener(rotationListener);
-  //   widget.readyToReleaseNotifier.addListener(() {
-  //     xFile = null;
-  //     setState(() {});
-  //   });
-  //   initCamera();
-  //   super.initState();
-  // }
-  //
-  // @override
-  // void dispose() {
-  //   widget.rotateAnimation.removeListener(rotationListener);
-  //   cameraController?.dispose();
-  //   super.dispose();
-  // }
-  //
-  // @override
-  // void didChangeAppLifecycleState(AppLifecycleState state) {
-  //   if (cameraController == null || !cameraController!.value.isInitialized) {
-  //     return;
-  //   }
-  //   if (state == AppLifecycleState.inactive) {
-  //     cameraController?.dispose();
-  //   } else if (state == AppLifecycleState.resumed) {
-  //     initCamera();
-  //   }
-  // }
-
+class _CircularCameraState extends State<CircularCamera> {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -92,7 +39,7 @@ class _CircularCameraState extends State<CircularCamera>
             );
           },
           child: ValueListenableBuilder<bool>(
-            valueListenable: InheritedNotifiers.getReadyToRelease(context),
+            valueListenable: context.readyToReleaseNotifier,
             builder: (_, value, child) => DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -103,7 +50,7 @@ class _CircularCameraState extends State<CircularCamera>
             child: Padding(
               padding: 4.edgeInsetsA,
               child: ValueListenableBuilder<double>(
-                valueListenable: InheritedNotifiers.getDragPercent(context),
+                valueListenable: context.dragPercentNotifier,
                 builder: (_, value, child) {
                   final size = lerpDouble(.2.sh, .4.sh, value)!;
                   return ClipRRect(
@@ -117,31 +64,31 @@ class _CircularCameraState extends State<CircularCamera>
                     ),
                   );
                 },
-                child: xFile != null
-                    ? Image.file(File(xFile!.path))
-                    : widget.cameraController != null
-                        ? CameraPreview(widget.cameraController!)
-                        : null,
+                child: ValueListenableBuilder<File?>(
+                  valueListenable: context.photoFileNotifier,
+                  builder: (_, file, child) =>
+                      file != null ? Image.file(file) : child!,
+                  child: widget.controller != null
+                      ? CameraPreview(widget.controller!)
+                      : const SizedBox.shrink(),
+                ),
               ),
             ),
           ),
         ),
         height28,
         ValueListenableBuilder<bool>(
-          valueListenable: InheritedNotifiers.getReadyToRelease(context),
-          builder: (__, value, _) {
-            return AnimatedSwitcher(
-              duration: kThemeAnimationDuration,
-              child: value
-                  ? xFile == null
-                      ? const Text(
-                          'Release to take a photo',
-                          key: Key('key1'),
-                        )
-                      : const Text('Cool!')
-                  : const Text('Flick to flip the camera'),
-            );
-          },
+          valueListenable: context.readyToReleaseNotifier,
+          builder: (__, value, child) => AnimatedSwitcher(
+            duration: kThemeAnimationDuration,
+            child: value ? child : const Text('Flick to flip the camera'),
+          ),
+          child: ValueListenableBuilder(
+            valueListenable: context.photoFileNotifier,
+            builder: (_, file, __) => file == null
+                ? const Text('Release to take a photo', key: Key('key1'))
+                : const Text('Cool!'),
+          ),
         ),
       ],
     );
