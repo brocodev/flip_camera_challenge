@@ -20,23 +20,9 @@ class DeliveredAnimatedChip extends StatelessWidget {
         bottom: null,
         child: child!,
       ),
-      child: Center(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: 20.borderRadiusA,
-          ),
-          child: Padding(
-            padding: [20, 10, 20, 10].edgeInsetsLTRB,
-            child: const Text(
-              'Delivered',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
+      child: const Chip(
+        backgroundColor: Colors.black,
+        label: Text('Delivered', style: TextStyle(color: Colors.white)),
       ),
     );
   }

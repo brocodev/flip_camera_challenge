@@ -56,7 +56,7 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
     if (deviceCameras.isEmpty) return;
     cameraController = CameraController(
       deviceCameras[context.cameraIndexNotifier.value],
-      ResolutionPreset.max,
+      ResolutionPreset.high,
       enableAudio: false,
     );
     cameraController?.initialize().then((_) {
@@ -102,7 +102,7 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
       kThemeChangeDuration,
       () => context.photoFileNotifier.value = null,
     );
-    // fake delivered action
+    // fake completed delivered
     Future.delayed(
       const Duration(seconds: 2),
       () => deliveredController.forward(),
@@ -191,41 +191,6 @@ class _TakePhotoBodyWidgetState extends State<_TakePhotoBodyWidget>
               child: GroupAvatar(index: index),
             );
           },
-        ),
-      ],
-    );
-  }
-}
-
-class GroupAvatar extends StatelessWidget {
-  const GroupAvatar({required this.index, super.key});
-
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox.square(
-          dimension: 60.r,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              image: DecorationImage(
-                image: NetworkImage(
-                  'https://source.unsplash.com/featured/300x20$index',
-                ),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-        ),
-        height4,
-        Text(
-          'group $index',
-          style: const TextStyle(fontSize: 12),
         ),
       ],
     );
