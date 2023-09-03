@@ -4,7 +4,7 @@ Flutter Camera App: A demo-inspired app made with SwiftUI and recreated from the
 ## Final Result
  | GestureDetector, Transforms & Camera Plugin |
  |----------------------|
- |<img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNzNqZjR3bnF4dnh1ZHh5dTA5dXFlNmdrOTk5cnd6MTJ4NDdjMXVpNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/kCu9RAleVDTrJUgsCa/giphy.gif" width="500" >|
+ |<img src="https://media0.giphy.com/media/ytkfXuCMzOHHL9Ru8o/giphy.gif" width="500" >|
 
 ### [Original UI](https://twitter.com/tommysearle/status/1696292855617130790?s=20)
 
