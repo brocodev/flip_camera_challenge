@@ -15,7 +15,7 @@ dependencies:
   flutter:
     sdk: flutter
   ui_common:
-    path: packages/ui_common/
+    git: https://github.com/brocodev/ui_common.git
 
 dev_dependencies:
   flutter_test:

@@ -440,9 +440,11 @@ packages:
   ui_common:
     dependency: "direct main"
     description:
-      path: "packages/ui_common"
-      relative: true
-    source: path
+      path: "."
+      ref: HEAD
+      resolved-ref: "9b6c28121f84dd313bd2f523ff1f84b6a7cd2483"
+      url: "https://github.com/brocodev/ui_common.git"
+    source: git
     version: "1.0.0+1"
   uuid:
     dependency: transitive
